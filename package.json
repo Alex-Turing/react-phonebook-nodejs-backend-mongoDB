@@ -6,7 +6,9 @@
   "scripts": {
     "start": "node index.js",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "nodemon index.js"
+    "dev": "nodemon index.js",
+    "build:ui": "rm -rf dist && cd ../../part2/phone-book && npm run build && cp -r dist ../../part3/phonebook-backend",
+    "build:full": "sh -c \"npm run build:ui && git add . && git commit -m \"uibuild $(date +'%Y-%m-%d %H:%M:%S')\" && git push\""
   },
   "author": "Alexander Hernandez",
   "license": "MIT",
