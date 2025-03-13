@@ -70,15 +70,8 @@ app.get('/api/persons/:id', (request, response) => {
         .catch(error => next(error));
 });
 
-app.post('/api/persons', (request, response) => {
+app.post('/api/persons', (request, response, next) => {
     const {name, number} = request.body;
-    if (name === undefined || number === undefined) {
-        return response.status(400).json({
-            error: 'Name and number are required',
-            status: 400,
-            timeStamped: new Date().toISOString(),
-        });
-    }
 
     Person.findOne({ name: { $regex: new RegExp(`^${name}$`, 'i') } })
         .then(existingPerson => {
@@ -96,30 +89,16 @@ app.post('/api/persons', (request, response) => {
 
             person.save()
                 .then(savedPerson => response.json(savedPerson))
-                .catch(error => {
-                    console.error(error);
-                    response.status(500).json({
-                        error: 'Error saving person to database',
-                        status: 500,
-                        timeStamped: new Date().toISOString(),
-                    });
-                });
+                .catch(error => next(error));
         })
-        .catch(error => {
-            console.error(error);
-            response.status(500).json({
-                error: 'Error searching the database.',
-                status: 500,
-                timeStamped: new Date().toISOString(),
-            });
-        });
+        .catch(error => next(error));
     //const newName = persons.find(person => body.name.toLowerCase() === person.name.toLowerCase());
 });
 
 app.put('/api/persons/:id', (request, response) => {
     const personId = request.params.id;
     const updatedData = request.body;
-    Person.findByIdAndUpdate(personId, updatedData, { new: true, runValidators: true })
+    Person.findByIdAndUpdate(personId, updatedData, { new: true, runValidators: true, context: 'query' })
         .then(updatedPerson => {
             if (!updatedPerson) {
                 return response.status(404).json({
@@ -140,7 +119,7 @@ app.put('/api/persons/:id', (request, response) => {
         });
 })
 
-app.delete('/api/persons/:id', (request, response) => {
+app.delete('/api/persons/:id', (request, response, next) => {
     const personId = request.params.id;
     console.log('person ID:', personId);
     Person.findByIdAndDelete(personId)
@@ -167,6 +146,10 @@ const errorHandler = (error, request, response, next) => {
     console.error(error.message);
     if (error.message === 'CastError') {
         return response.status(400).send({ error: 'malformated id' });
+    }
+    else if(error.message === 'ValidationError') 
+    {
+        return response.status(404).json({ error: error.message });
     }
 
     next(error);
