@@ -95,7 +95,7 @@ app.post('/api/persons', (request, response, next) => {
     //const newName = persons.find(person => body.name.toLowerCase() === person.name.toLowerCase());
 });
 
-app.put('/api/persons/:id', (request, response) => {
+app.put('/api/persons/:id', (request, response, next) => {
     const personId = request.params.id;
     const updatedData = request.body;
     Person.findByIdAndUpdate(personId, updatedData, { new: true, runValidators: true, context: 'query' })
@@ -109,14 +109,7 @@ app.put('/api/persons/:id', (request, response) => {
             }
             response.json(updatedPerson);
         })
-        .catch(error => {
-            console.error(error);
-            response.status(500).json({
-                error: 'Error updating person in database',
-                status: 500,
-                timeStamped: new Date().toISOString()
-            });
-        });
+        .catch(error => next(error));
 })
 
 app.delete('/api/persons/:id', (request, response, next) => {
