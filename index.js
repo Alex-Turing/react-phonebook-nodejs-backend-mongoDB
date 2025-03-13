@@ -11,29 +11,6 @@ const app = express();
  */
 const morgan = require('morgan');
 
-// let persons = [
-//     {
-//         "id": 1,
-//         "name": "Arto Hellas",
-//         "phoneNumber": "040-123456"
-//     },
-//     {
-//         "id": 2,
-//         "name": "Ada Lovelace",
-//         "phoneNumber": "39-44-5323523"
-//     },
-//     {
-//         "id": 3,
-//         "name": "Dan Abramov",
-//         "phoneNumber": "12-43-234345"
-//     },
-//     {
-//         "id": 4,
-//         "name": "Mary Poppendieck",
-//         "phoneNumber": "39-23-6423122"
-//     }
-// ]
-
 const requestLogger = (request, response, next) => {
     console.log('Method:', request.method)
     console.log('Path:  ', request.path)
@@ -88,22 +65,14 @@ app.get('/info', (request, response) => {
 app.get('/api/persons/:id', (request, response) => {
     const personId = request.params.id;
     //const person = persons.find(person => person.id === personId);
-    Person.findById(personId).then(person => {
-        response.json(person);
-    })
-        .catch(error => {
-            console.error(error);
-            response.status(404).json({
-                error: `Person with id:${personId} not found`,
-                status: 404,
-                timeStamped: new Date().toISOString(),
-            });
-        })
+    Person.findById(personId)
+        .then(person => response.json(person))
+        .catch(error => next(error));
 });
 
 app.post('/api/persons', (request, response) => {
-    const body = request.body;
-    if (body.name === undefined || body.number === undefined) {
+    const {name, number} = request.body;
+    if (name === undefined || number === undefined) {
         return response.status(400).json({
             error: 'Name and number are required',
             status: 400,
@@ -111,7 +80,7 @@ app.post('/api/persons', (request, response) => {
         });
     }
 
-    Person.findOne({ name: { $regex: new RegExp(`^${body.name}$`, 'i') } })
+    Person.findOne({ name: { $regex: new RegExp(`^${name}$`, 'i') } })
         .then(existingPerson => {
             if (existingPerson) {
                 return response.status(400).json({
@@ -121,8 +90,8 @@ app.post('/api/persons', (request, response) => {
                 });
             }
             const person = new Person({
-                name: body.name,
-                number: body.number,
+                name: name,
+                number: number,
             });
 
             person.save()
@@ -147,6 +116,30 @@ app.post('/api/persons', (request, response) => {
     //const newName = persons.find(person => body.name.toLowerCase() === person.name.toLowerCase());
 });
 
+app.put('/api/persons/:id', (request, response) => {
+    const personId = request.params.id;
+    const updatedData = request.body;
+    Person.findByIdAndUpdate(personId, updatedData, { new: true, runValidators: true })
+        .then(updatedPerson => {
+            if (!updatedPerson) {
+                return response.status(404).json({
+                    error: `Person with id ${personId} not found`,
+                    status: 404,
+                    timeStamped: new Date().toISOString()
+                });
+            }
+            response.json(updatedPerson);
+        })
+        .catch(error => {
+            console.error(error);
+            response.status(500).json({
+                error: 'Error updating person in database',
+                status: 500,
+                timeStamped: new Date().toISOString()
+            });
+        });
+})
+
 app.delete('/api/persons/:id', (request, response) => {
     const personId = request.params.id;
     console.log('person ID:', personId);
@@ -165,17 +158,21 @@ app.delete('/api/persons/:id', (request, response) => {
                 timeStamped: new Date().toISOString()
             });
         })
-        .catch(error => {
-            console.error(error);
-            response.status(500).json({
-                error: 'Error deleting person from database',
-                status: 500,
-                timeStamped: new Date().toISOString()
-            });
-        });
+        .catch(error => next(error));
 });
 
 app.use(unknownEndpoint);
+
+const errorHandler = (error, request, response, next) => {
+    console.error(error.message);
+    if (error.message === 'CastError') {
+        return response.status(400).send({ error: 'malformated id' });
+    }
+
+    next(error);
+}
+
+app.use(errorHandler);
 
 const PORT = process.env.PORT || 3002;
 
