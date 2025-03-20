@@ -1,5 +1,6 @@
 const phonebookRouter = require('express').Router();
 const Person = require('../models/phonebook');
+const logger = require('../utils/logger');
 
 phonebookRouter.get('/', async (request, response) => {
     Person.find({})
@@ -40,7 +41,8 @@ phonebookRouter.post('/', (request, response) => {
 
 phonebookRouter.delete('/:id', (request, response) => {
     const id = request.params.id;
-    Person.findByIdAndRemove(id)
+    logger.info('id', id);
+    Person.findByIdAndDelete(id)
         .then(() => {
             response.status(204).end();
         })
