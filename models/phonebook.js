@@ -1,18 +1,4 @@
-require('dotenv').config();
-const mongoose = require('mongoose');
-mongoose.set('strictQuery', false);
-
-const url = process.env.MONGODB_URI;
-
-console.log('connecting to', url);
-
-mongoose.connect(url)
-    .then(result => {
-        console.log('Phonebook app connected to MongoDB');
-    })
-    .catch(err => {
-        console.error('Error connecting to MongoDB', err);
-    });
+const  mongoose = require('mongoose');
 
 const personSchema = new mongoose.Schema({
     name: {
